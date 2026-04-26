@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sleep Calculator — What Time Should I Wake Up or Go to Bed?</title>
+<meta name="description" content="Free sleep calculator based on 90-minute sleep cycles. Find the best time to wake up or go to bed to feel refreshed and avoid waking mid-cycle.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg:        #0a0e1a;
+    --panel:     #111827;
+    --panel2:    #1a2235;
+    --border:    rgba(255,255,255,0.07);
+    --gold:      #c9a84c;
+    --gold-soft: rgba(201,168,76,0.15);
+    --blue:      #4a90d9;
+    --blue-soft: rgba(74,144,217,0.12);
+    --text:      #e8e4db;
+    --muted:     #8a95a8;
+    --accent:    #7eb8f7;
+    --card-wake: #1e2d42;
+    --card-bed:  #1e2a1e;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Stars background ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 8%,  rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 15%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 72% 5%,  rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 88% 22%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 18% 45%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 92% 60%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 42% 70%, rgba(255,255,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 65% 88%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(2px 2px at 80% 40%, rgba(201,168,76,0.4) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── EMBED MODE ── */
+  body.embed header, body.embed footer, body.embed .share-section,
+  body.embed .faq-section, body.embed .bookmark-tip { display: none !important; }
+  body.embed .powered-by { display: flex !important; }
+  body.embed main { padding: 16px; }
+
+  .powered-by {
+    display: none;
+    justify-content: center;
+    padding: 10px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .powered-by a { color: var(--gold); text-decoration: none; }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo a {
+    text-decoration: none;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    transition: color 0.2s;
+  }
+  .logo a:hover { color: var(--gold); }
+
+  .logo span { color: var(--gold); }
+
+  /* ── MAIN ── */
+  main {
+    position: relative;
+    z-index: 10;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 48px 24px 64px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .moon-icon {
+    font-size: 52px;
+    display: block;
+    margin: 0 auto 20px;
+    animation: float 4s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-8px); }
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  h1 em { font-style: italic; color: var(--gold); }
+
+  .hero-sub {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 5px;
+    margin-bottom: 28px;
+    gap: 4px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--muted);
+    transition: all 0.25s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .tab-btn.active {
+    background: var(--panel2);
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  /* ── PANEL ── */
+  .calc-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 32px;
+    margin-bottom: 28px;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .panel-label {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  .time-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .time-input-group {
+    display: flex;
+    align-items: center;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    height: 52px;
+  }
+
+  .time-input-group select {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    padding: 0 14px;
+    height: 100%;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    text-align: center;
+    min-width: 72px;
+  }
+  .time-input-group select:focus { outline: none; }
+  .time-sep { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--muted); }
+
+  .ampm-group {
+    display: flex;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    height: 52px;
+  }
+  .ampm-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    transition: all 0.2s;
+  }
+  .ampm-btn.active {
+    background: var(--gold);
+    color: #0a0e1a;
+  }
+
+  .also-add-latency {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .also-add-latency label { cursor: pointer; }
+  .also-add-latency input[type=checkbox] {
+    accent-color: var(--gold);
+    width: 15px;
+    height: 15px;
+  }
+
+  .calc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gold);
+    color: #0a0e1a;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 28px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .calc-btn:hover { background: #dbb85a; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(201,168,76,0.3); }
+  .calc-btn:active { transform: translateY(0); }
+
+  /* ── RESULTS ── */
+  .results { display: none; margin-top: 28px; }
+  .results.show { display: block; animation: fadeUp 0.35s ease; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .results-label {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  .times-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    gap: 12px;
+  }
+
+  .time-card {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 14px;
+    text-align: center;
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .time-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+
+  .time-card.recommended {
+    border-color: var(--gold);
+    background: linear-gradient(135deg, rgba(201,168,76,0.12), var(--panel2));
+  }
+
+  .time-card .tc-time {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .time-card.recommended .tc-time { color: var(--gold); }
+
+  .time-card .tc-cycles {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+  .time-card .tc-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: var(--gold);
+    color: #0a0e1a;
+    padding: 2px 7px;
+    border-radius: 20px;
+    margin-top: 4px;
+  }
+
+  .results-note {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .results-note strong { color: var(--text); }
+
+  /* ── FAQ ── */
+  .faq-section {
+    margin-top: 60px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+
+  .faq-item {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+  }
+  .faq-q {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    user-select: none;
+  }
+  .faq-q::after {
+    content: '+';
+    font-size: 20px;
+    color: var(--gold);
+    flex-shrink: 0;
+    transition: transform 0.25s;
+  }
+  .faq-item.open .faq-q::after { transform: rotate(45deg); }
+  .faq-a {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.75;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, padding 0.2s;
+  }
+  .faq-item.open .faq-a { max-height: 400px; padding-top: 12px; }
+
+  /* ── SHARE ── */
+  .share-section {
+    margin-top: 40px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .share-label { font-size: 13px; color: var(--muted); }
+  .share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .share-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ── BOOKMARK ── */
+  .bookmark-tip {
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* ── RELATED ── */
+  .related-section { margin-top: 60px; }
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+  }
+  .related-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: block;
+  }
+  .related-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+  .related-card-emoji { font-size: 22px; margin-bottom: 8px; }
+  .related-card-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .related-card-desc  { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative;
+    z-index: 10;
+    border-top: 1px solid var(--border);
+    padding: 28px 32px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  footer a { color: var(--gold); text-decoration: none; }
+
+  /* ── SELECT OPTION HACK ── */
+  select option { background: #111827; }
+
+  @media (max-width: 500px) {
+    .calc-panel { padding: 20px 16px; }
+    main { padding: 32px 16px 48px; }
+    header { padding: 16px; }
+    .tabs { flex-direction: column; }
+    .times-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="powered-by"><span>Powered by <a href="https://quickutils.tools">quickutils.tools</a></span></div>
+
+<header>
+  <div class="logo"><a href="https://quickutils.tools"><span>quick</span>utils.tools</a></div>
+</header>
+
+<main>
+
+  <!-- HERO -->
+  <div class="hero">
+    <span class="moon-icon">🌙</span>
+    <h1>Sleep <em>Smarter</em></h1>
+    <p class="hero-sub">Wake up refreshed, not groggy. Calculate the best bedtime or wake time based on your natural 90-minute sleep cycles.</p>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('wake')">🌅 When should I wake up?</button>
+    <button class="tab-btn" onclick="switchTab('bed')">🛏️ When should I go to bed?</button>
+    <button class="tab-btn" onclick="switchTab('now')">😴 I'm going to sleep now</button>
+  </div>
+
+  <!-- CALC PANEL -->
+  <div class="calc-panel">
+
+    <!-- TAB: WAKE -->
+    <div class="tab-content active" id="tab-wake">
+      <div class="panel-label">I need to wake up at…</div>
+      <div class="time-row">
+        <div class="time-input-group">
+          <select id="wake-h" aria-label="Wake hour"></select>
+          <span class="time-sep">:</span>
+          <select id="wake-m" aria-label="Wake minute"></select>
+        </div>
+        <div class="ampm-group">
+          <button class="ampm-btn active" id="wake-am" onclick="setAmPm('wake','AM')">AM</button>
+          <button class="ampm-btn"        id="wake-pm" onclick="setAmPm('wake','PM')">PM</button>
+        </div>
+      </div>
+      <div class="also-add-latency">
+        <input type="checkbox" id="latency-wake" checked>
+        <label for="latency-wake">Add 14 min to fall asleep</label>
+      </div>
+      <button class="calc-btn" onclick="calcBedtimes()">✦ Calculate bedtimes</button>
+      <div class="results" id="results-wake">
+        <div class="results-label">Go to bed at…</div>
+        <div class="times-grid" id="grid-wake"></div>
+        <p class="results-note">Sleep in <strong>90-minute cycles</strong>. Aim for 5–6 cycles (7.5–9 hrs). Waking mid-cycle causes grogginess.</p>
+      </div>
+    </div>
+
+    <!-- TAB: BED -->
+    <div class="tab-content" id="tab-bed">
+      <div class="panel-label">I want to go to bed at…</div>
+      <div class="time-row">
+        <div class="time-input-group">
+          <select id="bed-h" aria-label="Bed hour"></select>
+          <span class="time-sep">:</span>
+          <select id="bed-m" aria-label="Bed minute"></select>
+        </div>
+        <div class="ampm-group">
+          <button class="ampm-btn active" id="bed-am" onclick="setAmPm('bed','AM')">AM</button>
+          <button class="ampm-btn"        id="bed-pm" onclick="setAmPm('bed','PM')">PM</button>
+        </div>
+      </div>
+      <div class="also-add-latency">
+        <input type="checkbox" id="latency-bed" checked>
+        <label for="latency-bed">Add 14 min to fall asleep</label>
+      </div>
+      <button class="calc-btn" onclick="calcWakeTimes()">✦ Calculate wake times</button>
+      <div class="results" id="results-bed">
+        <div class="results-label">Wake up at…</div>
+        <div class="times-grid" id="grid-bed"></div>
+        <p class="results-note">Sleep in <strong>90-minute cycles</strong>. Aim for 5–6 cycles (7.5–9 hrs). Waking mid-cycle causes grogginess.</p>
+      </div>
+    </div>
+
+    <!-- TAB: NOW -->
+    <div class="tab-content" id="tab-now">
+      <div class="panel-label">You're sleeping right now…</div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.7;">We'll use the current time plus 14 minutes to fall asleep and calculate the best times to wake up.</p>
+      <button class="calc-btn" onclick="calcNow()">✦ Calculate wake times</button>
+      <div class="results" id="results-now">
+        <div class="results-label">Wake up at…</div>
+        <div class="times-grid" id="grid-now"></div>
+        <p class="results-note" id="note-now"></p>
+      </div>
+    </div>
+
+  </div><!-- /calc-panel -->
+
+  <!-- SHARE -->
+  <div class="share-section">
+    <span class="share-label">Share:</span>
+    <a class="share-btn" href="https://twitter.com/intent/tweet?text=Sleep+Calculator+%E2%80%94+Wake+up+refreshed+every+time!&url=https://sleep.quickutils.tools" target="_blank" rel="noopener">𝕏 Twitter</a>
+    <a class="share-btn" href="https://www.facebook.com/sharer/sharer.php?u=https://sleep.quickutils.tools" target="_blank" rel="noopener">Facebook</a>
+    <a class="share-btn" href="https://www.reddit.com/submit?url=https://sleep.quickutils.tools&title=Sleep+Calculator" target="_blank" rel="noopener">Reddit</a>
+    <button class="share-btn" onclick="copyLink()">🔗 Copy link</button>
+  </div>
+
+  <!-- BOOKMARK -->
+  <p class="bookmark-tip">💡 Bookmark this tool — press <kbd style="background:var(--panel2);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:11px;">Ctrl+D</kbd> (Windows) or <kbd style="background:var(--panel2);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:11px;">Cmd+D</kbd> (Mac)</p>
+
+  <!-- FAQ -->
+  <section class="faq-section">
+    <h2 class="section-title">Sleep Calculator — FAQ</h2>
+
+    <div class="faq-item">
+      <div class="faq-q">What is a sleep cycle and why does it last 90 minutes?</div>
+      <div class="faq-a">A sleep cycle is a repeating pattern of sleep stages: light sleep (N1, N2), deep sleep (N3, also called slow-wave sleep), and REM (rapid eye movement) sleep. Each full cycle takes roughly 90 minutes on average, though this can vary from 80–120 minutes person to person and can lengthen across the night. Waking at the end of a cycle — rather than in the middle of deep or REM sleep — means you surface during the lightest stage, leaving you alert rather than groggy.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">How many sleep cycles do I need?</div>
+      <div class="faq-a">Most adults need 5–6 complete cycles per night, equating to 7.5–9 hours of sleep. Teenagers and children typically need more. 4 cycles (6 hrs) is a bare minimum that many can sustain short-term but is insufficient long-term. The National Sleep Foundation recommends 7–9 hours for adults aged 18–64, and 7–8 hours for adults 65+.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">What is the 14-minute "fall asleep" factor?</div>
+      <div class="faq-a">Sleep onset latency — how long it takes you to actually fall asleep after lying down — averages around 10–20 minutes for healthy sleepers. This calculator uses 14 minutes as the default, which represents a healthy average. You can uncheck this option if you fall asleep unusually fast (under 5 minutes, which can indicate sleep deprivation) or want to calculate from the exact moment you're actually asleep.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">What is the best time to wake up?</div>
+      <div class="faq-a">The "best" wake time is whatever aligns with the end of a complete 90-minute cycle. Beyond that, your body has a natural preference called a chronotype — morning larks naturally peak early, night owls later. Waking consistently at the same time each day (even weekends) is one of the most powerful things you can do for sleep quality, as it anchors your circadian rhythm.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Why do I feel groggy even after 8 hours of sleep?</div>
+      <div class="faq-a">Grogginess upon waking — called sleep inertia — usually means your alarm interrupted a deep sleep or REM stage rather than a light stage. By timing your wake-up to land at the end of a cycle, you dramatically reduce this effect. Other causes include poor sleep quality (sleep apnea, frequent waking), inconsistent sleep schedules, or sleeping in an environment that's too warm.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">What time should I go to bed for a 5am, 6am, or 7am wake up?</div>
+      <div class="faq-a">For a 5:00 AM wake-up (5 cycles): go to bed at 9:16 PM. For a 6:00 AM wake-up: go to bed at 10:16 PM (5 cycles) or 8:46 PM (6 cycles). For a 7:00 AM wake-up: go to bed at 11:16 PM (5 cycles) or 9:46 PM (6 cycles). These include 14 minutes to fall asleep.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">Is a 20-minute nap actually effective?</div>
+      <div class="faq-a">Yes — a 10–20 minute "power nap" stays in the light sleep stages (N1/N2), giving you a boost without sleep inertia. A 90-minute nap completes a full cycle and includes REM, which is restorative but requires more time. Avoid naps over 30 minutes unless you're doing a full 90-minute cycle, as you risk waking mid-deep-sleep and feeling worse.</div>
+    </div>
+  </section>
+
+  <!-- RELATED -->
+  <section class="related-section">
+    <h2 class="section-title">More free tools</h2>
+    <div class="related-grid" id="related-tools-grid">
+      <!-- populated by tools.js -->
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>© 2026 <a href="https://quickutils.tools">quickutils.tools</a> — Free utility tools, no sign-up required.</p>
+</footer>
+
+<script>
+  // ── EMBED MODE ──
+  if (new URLSearchParams(location.search).get('embed') === '1') {
+    document.body.classList.add('embed');
+  }
+
+  // ── OS-AWARE KEYBOARD SHORTCUT ──
+  const isMac = /Mac|iPhone|iPad/.test(navigator.userAgent);
+  document.querySelectorAll('kbd').forEach(k => {
+    if (k.textContent.includes('Ctrl') && isMac) k.textContent = 'Cmd+D';
+  });
+
+  // ── POPULATE SELECTS ──
+  function pad(n) { return String(n).padStart(2,'0'); }
+
+  ['wake-h','bed-h'].forEach(id => {
+    const sel = document.getElementById(id);
+    for (let h = 1; h <= 12; h++) sel.add(new Option(h, h));
+    sel.value = id === 'wake-h' ? 7 : 10;
+  });
+  ['wake-m','bed-m'].forEach(id => {
+    const sel = document.getElementById(id);
+    [0,15,30,45].forEach(m => sel.add(new Option(pad(m), m)));
+  });
+
+  // AM/PM state
+  const ampmState = { wake: 'AM', bed: 'PM' };
+  function setAmPm(type, val) {
+    ampmState[type] = val;
+    document.getElementById(`${type}-am`).classList.toggle('active', val==='AM');
+    document.getElementById(`${type}-pm`).classList.toggle('active', val==='PM');
+  }
+
+  // ── TAB SWITCHING ──
+  let activeTab = 'wake';
+  function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach((b,i) => {
+      b.classList.toggle('active', ['wake','bed','now'][i] === tab);
+    });
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
+  }
+
+  // ── HELPERS ──
+  function toMinutes24(h, m, ampm) {
+    let hr = parseInt(h);
+    if (ampm === 'PM' && hr !== 12) hr += 12;
+    if (ampm === 'AM' && hr === 12) hr = 0;
+    return hr * 60 + parseInt(m);
+  }
+
+  function formatTime(mins) {
+    mins = ((mins % 1440) + 1440) % 1440;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    const ampm = h < 12 ? 'AM' : 'PM';
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${h12}:${pad(m)} ${ampm}`;
+  }
+
+  function buildCards(grid, times, recommended) {
+    grid.innerHTML = '';
+    times.forEach(({time, cycles}) => {
+      const rec = cycles === recommended;
+      grid.insertAdjacentHTML('beforeend', `
+        <div class="time-card ${rec ? 'recommended' : ''}">
+          <div class="tc-time">${time}</div>
+          <div class="tc-cycles">${cycles} cycle${cycles!==1?'s':''} · ${cycles*90/60} hrs</div>
+          ${rec ? '<span class="tc-badge">✦ Ideal</span>' : ''}
+        </div>`);
+    });
+  }
+
+  // ── CALCULATE BEDTIMES ──
+  function calcBedtimes() {
+    const wakeMin = toMinutes24(
+      document.getElementById('wake-h').value,
+      document.getElementById('wake-m').value,
+      ampmState.wake
+    );
+    const latency = document.getElementById('latency-wake').checked ? 14 : 0;
+    const times = [];
+    for (let c = 6; c >= 3; c--) {
+      const bedMin = wakeMin - c * 90 - latency;
+      times.push({ time: formatTime(bedMin), cycles: c });
+    }
+    buildCards(document.getElementById('grid-wake'), times, 5);
+    const r = document.getElementById('results-wake');
+    r.classList.add('show');
+  }
+
+  // ── CALCULATE WAKE TIMES ──
+  function calcWakeTimes() {
+    const bedMin = toMinutes24(
+      document.getElementById('bed-h').value,
+      document.getElementById('bed-m').value,
+      ampmState.bed
+    );
+    const latency = document.getElementById('latency-bed').checked ? 14 : 0;
+    const times = [];
+    for (let c = 3; c <= 6; c++) {
+      const wakeMin = bedMin + c * 90 + latency;
+      times.push({ time: formatTime(wakeMin), cycles: c });
+    }
+    buildCards(document.getElementById('grid-bed'), times, 5);
+    document.getElementById('results-bed').classList.add('show');
+  }
+
+  // ── CALCULATE FROM NOW ──
+  function calcNow() {
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const latency = 14;
+    const times = [];
+    for (let c = 3; c <= 6; c++) {
+      const wakeMin = nowMin + c * 90 + latency;
+      times.push({ time: formatTime(wakeMin), cycles: c });
+    }
+    buildCards(document.getElementById('grid-now'), times, 5);
+    const noteEl = document.getElementById('note-now');
+    const nowFmt = formatTime(nowMin);
+    noteEl.innerHTML = `Based on falling asleep at <strong>${formatTime(nowMin + latency)}</strong> (current time ${nowFmt} + 14 min). Aim for the <strong>5 or 6 cycle</strong> options for a full night.`;
+    document.getElementById('results-now').classList.add('show');
+  }
+
+  // ── FAQ accordion ──
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.addEventListener('click', () => q.parentElement.classList.toggle('open'));
+  });
+
+  // ── SHARE ──
+  function copyLink() {
+    navigator.clipboard.writeText('https://sleep.quickutils.tools').then(() => {
+      const btn = event.target;
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => btn.textContent = '🔗 Copy link', 2000);
+    });
+  }
+
+  // ── RELATED TOOLS ──
+  const script = document.createElement('script');
+  script.src = 'https://quickutils.tools/tools.js';
+  script.onload = () => {
+    if (typeof renderRelatedTools === 'function') {
+      renderRelatedTools({ currentUrl: 'https://sleep.quickutils.tools', max: 8 });
+    }
+  };
+  document.head.appendChild(script);
+</script>
+
+<!-- TOP AD BANNER (replace with AdSense code after approval) -->
+<!-- <div id="ad-top" style="text-align:center;margin-bottom:20px;"></div> -->
+
+<!-- AD PLACEHOLDER (replace with AdSense) -->
+<!-- <div id="ad-mid"></div> -->
+
+<!-- INLINE AD (replace with AdSense) -->
+<!-- <div id="ad-inline"></div> -->
+
+<!-- Google AdSense -->
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8872742474601337" crossorigin="anonymous"></script> -->
+
+</body>
+</html>
